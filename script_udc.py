@@ -35,13 +35,19 @@ if((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
     print("PS names: ",psnames)
 
     size = len(psnames) 
-    ''''
-    #Conferir nomes das fontes
-    psnames_udc = []
+    
+    #Verifica nomes das fontes
+    nomes_fontes = []
+    temp = ''
+    
     for i in range(0,size):
-        var = epics.caget(psnames[i][0]+":ParamPSName-Cte")
-        print("PS name", str(var),'utf8', "OK")
-    '''  
+        psname_epics = epics.caget(psnames[i][0]+":ParamPSName-Cte")
+
+    for v in psname_epics:
+        temp = temp + chr(v)
+    nomes_fontes.append(temp)
+
+    print(nomes_fontes)
 
     #Conferir versão do firmware
     firmware_version_origin = "0.44.01    08/220.44.01    08/22"
