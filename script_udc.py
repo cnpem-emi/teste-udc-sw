@@ -7,28 +7,39 @@ from siriuspy import search
 #udcname = "ET-RaCtrl:PS-UDC"
 #psname = "ET-RaCtrl:PS-CH-1"
 
+
+
+# Define função que receberá as mensagens de Exception do EPICS
+def epics_ca_no_print(epics_ca_warnings):
+    return
+
+# Escolhe direcionamento das mensagens de Exception
+epics.ca.replace_printf_handler(fcn=epics_ca_no_print)
+
+
 sala = input("Sala: ")
 rack = input("Rack: ")
 tipo_fonte = input("FBP(1) ou FBP-DCLink(2): ")
 
-if(len(sala)< 2):
+if (len(sala) < 2):
     sala = "0"+sala
 
-if(len(rack) <2 ):
+if (len(rack) < 2):
     rack = "0"+rack
 
 
-if((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
+if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
     bastidor = input("Bastidor: ")
-    if(int(bastidor) <= 5):
+    if (int(bastidor) <= 5):
         udcname = "IA-"+sala+"RaPS"+rack+":PS-UDC-SI"+bastidor
-    if(int(bastidor) == 6):
-        if(int(sala) == 14):
+    if (int(bastidor) == 6):
+        if (int(sala) == 14):
             udcname = "IA-"+sala+"RaPS"+rack+":PS-UDC-SI6"
         else:
             udcname = "IA-"+sala+"RaPS"+rack+":PS-UDC-BO"
-    if(int(bastidor) >7):
+    if (int(bastidor) > 7):
         print("Bastidor não encontrado")
+
     psnames = []
     psnames = search.PSSearch.conv_udc_2_bsmps(udcname)
     print("UDC name: ",udcname)
@@ -46,14 +57,37 @@ if((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
     for v in psname_epics:
         temp = temp + chr(v)
     nomes_fontes.append(temp)
+    
+    print("Nomes lidos: ", nomes_fontes)
+    print("Nomes esperados: ",psnames)
+    
+    
+    nome = ''.join(nomes_fontes)
+    nomes_lidos = nome.split("/")
+    
+    print('\n')
 
-    print(nomes_fontes)
+    for i in range(0,size):
+        str1 = nomes_lidos[i]
+        str2 = psnames[i][0]
+
+        index = str1.find(str2)
+
+        if (index != -1):
+            print("Ok. Fonte  é a esperada: ",str2)
+        else:
+            print("Erro. Fonte não é a esperada: ",str2)
+
+    print('\n')
+
+
 
     #Conferir versão do firmware
     firmware_version_origin = "0.44.01    08/220.44.01    08/22"
     firmware_version = psnames[0][0]+":Version-Cte"
     firmware= epics.caget(firmware_version)
-    if(firmware_version_origin == firmware):
+
+    if (firmware_version_origin == firmware):
         print("Firmware version:",firmware,"Versão correta\n")
     else:
         print("Firmware version:",firmware,"Versão incorreta\n")
@@ -88,7 +122,7 @@ if((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
     desligar = input("Desligar fontes?")
 
 
-    if(desligar == "y" or desligar == "yes"):
+    if (desligar == "y" or desligar == "yes"):
         for i in range(0,size):
             turn_off = psnames[i][0]+":PwrState-Sel"
             set_turn_off = epics.caput(turn_off,0)
@@ -113,13 +147,14 @@ else:
     psnames = []
     psnames = search.PSSearch.conv_udc_2_bsmps(udcname)
     dc_link_name = search.PSSearch.conv_psname_2_dclink(psnames[0][0])
-    print("DCLink name:",dc_link_name)
+    print("DCLink name:",dc_link_name[0])
 
     #Conferir versão do firmware
-    firmware_version_origin = "0.44.01    08/220.44.01    08/22"
-    firmware_version = psnames[0][0]+":Version-Cte"
+    firmware_dclink_origin = "0.44.01    08/220.44.01    08/22"
+    firmware_version = dc_link_name[0] +":Version-Cte"
     firmware= epics.caget(firmware_version)
-    if(firmware_version_origin == firmware):
+
+    if (firmware_dclink_origin == firmware):
         print("Firmware version:",firmware,"Versão correta\n")
     else:
         print("Firmware version:",firmware,"Versão incorreta\n")
@@ -141,7 +176,7 @@ else:
     #Desligar DCLink
     desligar = input("Desligar DCLink?")
 
-    if(desligar == "y" or desligar == "yes"):
+    if (desligar == "y" or desligar == "yes"):
         turn_off = dc_link_name[0]+":PwrState-Sel"
         set_turn_off = epics.caput(turn_off,0)
         print("DCLink desligado:",dc_link_name[0])
