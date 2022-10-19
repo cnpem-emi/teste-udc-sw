@@ -56,6 +56,9 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
         temp = ''
             
         for i in range(0,size):
+            print("Solicitando Update de parametros para: ",psnames[i][0])
+            epics.caput(psnames[i][0]+":ParamUpdate-Cmd",1)
+            time.sleep(1)
             psname_epics = epics.caget(psnames[i][0]+":ParamPSName-Cte")
         for v in psname_epics:
             temp = temp + chr(v)
