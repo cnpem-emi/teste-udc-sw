@@ -29,116 +29,136 @@ if (len(rack) < 2):
 
 
 if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
-    bastidor = input("Bastidor: ")
-    if (int(bastidor) <= 5):
-        udcname = "IA-"+sala+"RaPS"+rack+":PS-UDC-SI"+bastidor
-    if (int(bastidor) == 6):
-        if (int(sala) == 14):
-            udcname = "IA-"+sala+"RaPS"+rack+":PS-UDC-SI6"
-        else:
-            udcname = "IA-"+sala+"RaPS"+rack+":PS-UDC-BO"
-    if (int(bastidor) > 7):
-        print("Bastidor não encontrado")
+    encerrar = False
+    while(encerrar == False):
+        bastidor = input("Bastidor: ")
+        if (int(bastidor) <= 5):
+            udcname = "IA-"+sala+"RaPS"+rack+":PS-UDC-SI"+bastidor
+        if (int(bastidor) == 6):
+            if (int(sala) == 14):
+                udcname = "IA-"+sala+"RaPS"+rack+":PS-UDC-SI6"
+            else:
+                udcname = "IA-"+sala+"RaPS"+rack+":PS-UDC-BO"
+        if (int(bastidor) > 7):
+            print("Bastidor não encontrado")
 
-    psnames = []
-    psnames = search.PSSearch.conv_udc_2_bsmps(udcname)
-    print("UDC name: ",udcname)
-    print("PS names: ",psnames)
+        psnames = []
+        psnames = search.PSSearch.conv_udc_2_bsmps(udcname)
+        print("UDC name: ",udcname)
+        print("PS names: ",psnames)
 
-    size = len(psnames) 
-    
-    #Verifica nomes das fontes
-    nomes_fontes = []
-    temp = ''
-    
-    for i in range(0,size):
-        psname_epics = epics.caget(psnames[i][0]+":ParamPSName-Cte")
+        print("\n")
 
-    for v in psname_epics:
-        temp = temp + chr(v)
-    nomes_fontes.append(temp)
-    
-    print("Nomes lidos: ", nomes_fontes)
-    print("Nomes esperados: ",psnames)
-    
-    
-    nome = ''.join(nomes_fontes)
-    nomes_lidos = nome.split("/")
-    
-    print('\n')
-
-    for i in range(0,size):
-        str1 = nomes_lidos[i]
-        str2 = psnames[i][0]
-
-        index = str1.find(str2)
-
-        if (index != -1):
-            print("Ok. Fonte  é a esperada: ",str2)
-        else:
-            print("Erro. Fonte não é a esperada: ",str2)
-
-    print('\n')
-
-
-
-    #Conferir versão do firmware
-    firmware_version_origin = "0.44.01    08/220.44.01    08/22"
-    firmware_version = psnames[0][0]+":Version-Cte"
-    firmware= epics.caget(firmware_version)
-
-    if (firmware_version_origin == firmware):
-        print("Firmware version:",firmware,"Versão correta\n")
-    else:
-        print("Firmware version:",firmware,"Versão incorreta\n")
-
-
-    #Ligar fontes de um mesmo bastidor em sequência
-    for i in range(0,size):
-        turn_on = psnames[i][0]+":PwrState-Sel"
-        turn_on_ps = epics.caput(turn_on,1)
-        print("Fonte ligada:",psnames[i][0] )
-        time.sleep(1)
-        
-    print('\n')
-
-    #Colocar 1A para FBPs
-    for i in range(0,size):
-        current = psnames[i][0]+":Current-SP"
-        set_current = epics.caput(current,1)
-
-    time.sleep(2)
-
-
-    #Ler 1A das fontes
-    for i in range(0,size):
-        read_current = psnames[i][0]+":Current-Mon"
-        current_value = epics.caget(read_current)
-        print(psnames[i][0],"Current value:",current_value)
-
-    print('\n')
-
-    #Desligar fontes
-    desligar = input("Desligar fontes?")
-
-
-    if (desligar == "y" or desligar == "yes"):
+        size = len(psnames) 
+            
+        #Verifica nomes das fontes
+        nomes_fontes = []
+        temp = ''
+            
         for i in range(0,size):
-            turn_off = psnames[i][0]+":PwrState-Sel"
-            set_turn_off = epics.caput(turn_off,0)
-            print("Fonte desligada:",psnames[i][0])
+            psname_epics = epics.caget(psnames[i][0]+":ParamPSName-Cte")
+        for v in psname_epics:
+            temp = temp + chr(v)
+        nomes_fontes.append(temp)
+            
+        print("Nomes lidos: ", nomes_fontes)
+        print("Nomes esperados: ",psnames)
+            
+            
+        nome = ''.join(nomes_fontes)
+        nomes_lidos = nome.split("/")
+            
+        print('\n')
+
+        for i in range(0,size):
+            str1 = nomes_lidos[i]
+            str2 = psnames[i][0]
+
+            index = str1.find(str2)
+
+            if (index != -1):
+                print("Ok. Fonte  é a esperada: ",str2)
+            else:
+                print("Erro. Fonte não é a esperada: ",str2)
+        print('\n')
+
+
+            #Verifica estado do interlock
+
+        for i in range(0,size):
+
+            interlock_signal_hard = epics.caget(psnames[i][0]+":IntlkHard-Mon")
+            interlock_signal_soft = epics.caget(psnames[i][0]+":IntlkSoft-Mon")
+                
+            if(int(interlock_signal_hard) !=0):
+                print("Hard Interlock: ",psnames[i][0])
+
+            if(int(interlock_signal_soft) !=0):
+                print("Soft Interlock: ",psnames[i][0])
+
+            epics.caput(psnames[i][0]+":Reset-Cmd",1)
+
+
+            #Conferir versão do firmware
+        firmware_version_origin = "0.44.01    08/220.44.01    08/22"
+        firmware_version = psnames[0][0]+":Version-Cte"
+        firmware= epics.caget(firmware_version)
+
+        if (firmware_version_origin == firmware):
+            print("Firmware version:",firmware,"Versão correta\n")
+        else:
+            print("Firmware version:",firmware,"Versão incorreta\n")
+
+
+            #Ligar fontes de um mesmo bastidor em sequência
+        for i in range(0,size):
+            turn_on = psnames[i][0]+":PwrState-Sel"
+            turn_on_ps = epics.caput(turn_on,1)
+            print("Fonte ligada:",psnames[i][0] )
             time.sleep(1)
+                
+        print('\n')
 
-    print('\n')
+            #Colocar 1A para FBPs
+        for i in range(0,size):
+            current = psnames[i][0]+":Current-SP"
+            set_current = epics.caput(current,1)
 
-    time.sleep(2)
+        time.sleep(2)
 
-    #Ler 0A das fontes
-    for i in range(0,size):
-        read_current = psnames[i][0]+":Current-Mon"
-        current_value = epics.caget(read_current)
-        print(psnames[i][0],"Current value:",current_value)
 
+            #Ler 1A das fontes
+        for i in range(0,size):
+            read_current = psnames[i][0]+":Current-Mon"
+            current_value = epics.caget(read_current)
+            print(psnames[i][0],"Current value:",current_value)
+
+        print('\n')
+
+            #Desligar fontes
+        desligar = input("Desligar fontes?")
+
+
+        if (desligar == "y" or desligar == "yes"):
+            for i in range(0,size):
+                turn_off = psnames[i][0]+":PwrState-Sel"
+                set_turn_off = epics.caput(turn_off,0)
+                print("Fonte desligada:",psnames[i][0])
+                time.sleep(1)
+
+        print('\n')
+        time.sleep(2)
+
+            #Ler 0A das fontes
+        for i in range(0,size):
+            read_current = psnames[i][0]+":Current-Mon"
+            current_value = epics.caget(read_current)
+            print(psnames[i][0],"Current value:",current_value)
+
+        var = int(input("Trocar bastidor(1) Encerrar Programa(2)"))
+
+        if(var == 2):
+            encerrar = True
 
 
 else:
@@ -148,6 +168,21 @@ else:
     psnames = search.PSSearch.conv_udc_2_bsmps(udcname)
     dc_link_name = search.PSSearch.conv_psname_2_dclink(psnames[0][0])
     print("DCLink name:",dc_link_name[0])
+
+
+
+    #Verifica estado do interlock
+
+    interlock_signal_hard = epics.caget(dc_link_name[0]+":IntlkHard-Mon")
+    interlock_signal_soft = epics.caget(dc_link_name[0]+":IntlkSoft-Mon")
+    
+    if(int(interlock_signal_hard) !=0):
+        print("Hard Interlock: ",dc_link_name[0])
+
+    if(int(interlock_signal_soft) !=0):
+        print("Soft Interlock: ",dc_link_name[0])
+
+    epics.caput(dc_link_name[0]+":Reset-Cmd",1)
 
     #Conferir versão do firmware
     firmware_dclink_origin = "0.44.01    08/220.44.01    08/22"
