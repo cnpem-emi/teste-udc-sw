@@ -57,8 +57,8 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
             
         for i in range(0,size):
             print("Solicitando Update de parametros para: ",psnames[i][0])
-            epics.caput(psnames[i][0]+":ParamUpdate-Cmd",1)
-            time.sleep(1)
+           # epics.caput(psnames[i][0]+":ParamUpdate-Cmd",1)
+           # time.sleep(1)
             psname_epics = epics.caget(psnames[i][0]+":ParamPSName-Cte")
         for v in psname_epics:
             temp = temp + chr(v)
@@ -86,7 +86,7 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
         print('\n')
 
 
-            #Verifica estado do interlock
+        #Verifica estado do interlock
 
         for i in range(0,size):
 
@@ -102,27 +102,28 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
             epics.caput(psnames[i][0]+":Reset-Cmd",1)
 
 
-            #Conferir versão do firmware
+        #Conferir versão do firmware
         firmware_version_origin = "0.44.01    08/220.44.01    08/22"
         firmware_version = psnames[0][0]+":Version-Cte"
         firmware= epics.caget(firmware_version)
 
-        if (firmware_version_origin == firmware):
+        if(firmware_version_origin == firmware):
             print("Firmware version:",firmware,"Versão correta\n")
+
         else:
             print("Firmware version:",firmware,"Versão incorreta\n")
 
 
-            #Ligar fontes de um mesmo bastidor em sequência
+        #Ligar fontes de um mesmo bastidor em sequência
         for i in range(0,size):
             turn_on = psnames[i][0]+":PwrState-Sel"
             turn_on_ps = epics.caput(turn_on,1)
-            print("Fonte ligada:",psnames[i][0] )
+            print("Fonte ligada:",psnames[i][0])
             time.sleep(1)
                 
         print('\n')
 
-            #Colocar 1A para FBPs
+        #Colocar 1A para FBPs
         for i in range(0,size):
             current = psnames[i][0]+":Current-SP"
             set_current = epics.caput(current,1)
@@ -130,15 +131,86 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
         time.sleep(2)
 
 
-            #Ler 1A das fontes
+        #Ler 1A das fontes
         for i in range(0,size):
             read_current = psnames[i][0]+":Current-Mon"
             current_value = epics.caget(read_current)
             print(psnames[i][0],"Current value:",current_value)
 
+
+        
+        #Verifica sinal de sincronismo
+
+        sincronismo = input("Testar sincronismo? yes(y) ou no(n)")
+        if(sincronismo == ("y" or "yes")):
+            for i in range(0,size):
+
+                leitura_anterior = epics.caget(psnames[i][0]+":WfmSyncPulseCount-Mon")
+
+                #Usa nome do trigger e não nome da fonte
+
+                str_fonte = psnames[i][0]  #le o nome das fontes
+                #str_fonte = "BO-Fam:PS-QF"
+                str_udc = udcname    #le o nome do UDC
+                #str_udc = "PA-RaPSC03:PS-UDC-BO1"
+
+                #Identificar nome do trigger 
+                
+                if(str_udc.find("SI") !=-1):
+
+                    if(str_udc.find("IA") !=-1):
+                    
+                        if((str_fonte.find("CV")!=-1) or (str_fonte.find("CH")!=-1)):
+                            trigger_name = "SI-Glob:TI-Mags-Corrs"
+
+                        if(str_fonte.find("QS") !=-1):
+                            trigger_name = "SI-Glob:TI-Mags-Skews"
+                        
+                        if((str_fonte.find("QF") !=-1) or (str_fonte.find("Q1") !=-1) or (str_fonte.find("Q2") !=-1) or (str_fonte.find("Q3") !=-1) or (str_fonte.find("Q4") !=-1) or (str_fonte.find("QD") != -1)):
+                            trigger_name = "SI-Glob:TI-Mags-QTrims"
+                        
+                if(str_udc.find("BO")!=-1):
+
+                    if(str_udc.find("IA") != -1):
+
+                        if((str_fonte.find("CV")!=-1) or (str_fonte.find("CH")!=-1)):
+                            trigger_name = "BO-Glob:TI-Mags-Corrs"
+                    
+                        if(str_fonte.find("QS") !=-1):
+                            trigger_name = "BO-Glob:TI-Mags-Skews"
+
+                print(trigger_name)
+                src_anterior = epics.caget(trigger_name+":Src-Sts")
+                state_anterior = epics.caget(trigger_name+":State-Sts")
+
+                epics.caput(trigger_name+":Src-Sel", "Study")
+                epics.caput(trigger_name+":State-Sel", 1)
+                time.sleep(1)
+                
+
+                leitura_anterior = epics.caget(psnames[i][0]+":WfmSyncPulseCount-Mon")
+                
+                epics.caput("AS-RaMO:TI-EVG:StudyExtTrig-Cmd",1)
+
+                time.sleep(2)
+
+                leitura_atual = epics.caget(psnames[i][0]+":WfmSyncPulseCount-Mon")
+
+                epics.caput(trigger_name+":Src-Sel", src_anterior)
+                epics.caput(trigger_name+":State-Sel", state_anterior)
+
+                print(leitura_anterior, leitura_atual)
+
+                if(int(leitura_atual) != int(leitura_anterior) + 1):
+
+                    print("Erro no teste de sincronismo")
+
+                else:
+                    print("Teste de sincronismo.Ok!")
+                    
         print('\n')
 
-            #Desligar fontes
+        #Desligar fontes
         desligar = input("Desligar fontes?")
 
 
@@ -152,7 +224,7 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
         print('\n')
         time.sleep(2)
 
-            #Ler 0A das fontes
+        #Ler 0A das fontes
         for i in range(0,size):
             read_current = psnames[i][0]+":Current-Mon"
             current_value = epics.caget(read_current)
