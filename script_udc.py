@@ -142,7 +142,7 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
         #Verifica sinal de sincronismo
 
         sincronismo = input("Testar sincronismo? yes(y) ou no(n)")
-        if(sincronismo == ("y" or "yes")):
+        if((sincronismo == "y") or (sincronismo == "yes")):
             for i in range(0,size):
 
                 leitura_anterior = epics.caget(psnames[i][0]+":WfmSyncPulseCount-Mon")
@@ -150,10 +150,8 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
                 #Usa nome do trigger e não nome da fonte
 
                 str_fonte = psnames[i][0]  #le o nome das fontes
-                #str_fonte = "BO-Fam:PS-QF"
                 str_udc = udcname    #le o nome do UDC
-                #str_udc = "PA-RaPSC03:PS-UDC-BO1"
-
+    
                 #Identificar nome do trigger 
                 
                 if(str_udc.find("SI") !=-1):
@@ -187,7 +185,6 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
                 epics.caput(trigger_name+":State-Sel", 1)
                 time.sleep(1)
                 
-
                 leitura_anterior = epics.caget(psnames[i][0]+":WfmSyncPulseCount-Mon")
                 
                 epics.caput("AS-RaMO:TI-EVG:StudyExtTrig-Cmd",1)
