@@ -56,9 +56,9 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
         # Verifica se ha timeout na conexao EPICS
         ps_status = epics.PV(psnames[0][0]+":Current-Mon")
         if (not ps_status.status):
-            text = colored("UDC {} conectado!".format(udcname),'green')
+            text = colored("UDC {} conectado!\n".format(udcname),'green')
         else:
-            text = colored("ATENCAO! UDC {} nao esta comunicando!".format(udcname),'red')
+            text = colored("ATENCAO! UDC {} nao esta comunicando!\n".format(udcname),'red')
         print(text)
 
             
@@ -263,9 +263,9 @@ else:
     # Verifica se ha timeout na conexao EPICS
     ps_status = epics.PV(dc_link_name[0]+":Voltage-Mon")
     if (not ps_status.status):
-        text = colored("UDC {} conectado!".format(dc_link_name[0]),'green')
+        text = colored("UDC {} conectado!\n".format(dc_link_name[0]),'green')
     else:
-        text = colored("ATENCAO! UDC {} nao esta comunicando!".format(dc_link_name[0]),'red')
+        text = colored("ATENCAO! UDC {} nao esta comunicando!\n".format(dc_link_name[0]),'red')
     print(text)
 
     #Verifica estado do interlock
