@@ -1,6 +1,8 @@
 import epics
 import time
 from siriuspy import search
+import sys
+from termcolor import colored, cprint
 
 #Servidor 10.0.6.46 - Sala SEI
 #export SIRIUS_URL_CONSTS="http://localhost:20080/control-system-constants/"
@@ -49,7 +51,16 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
 
         print("\n")
 
-        size = len(psnames) 
+        size = len(psnames)
+
+        # Verifica se ha timeout na conexao EPICS
+        ps_status = epics.PV(psnames[0][0]+":Current-Mon")
+        if (not ps_status.status):
+            text = colored("UDC {} conectado!\n".format(udcname),'green')
+        else:
+            text = colored("ATENCAO! UDC {} nao esta comunicando!\n".format(udcname),'red')
+        print(text)
+
             
         #Verifica nomes das fontes
         nomes_fontes = []
@@ -57,9 +68,10 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
             
         for i in range(0,size):
             print("Solicitando Update de parametros para: ",psnames[i][0])
-           # epics.caput(psnames[i][0]+":ParamUpdate-Cmd",1)
-           # time.sleep(1)
+            epics.caput(psnames[i][0]+":ParamUpdate-Cmd",1)
+            time.sleep(1)
             psname_epics = epics.caget(psnames[i][0]+":ParamPSName-Cte")
+        time.sleep(1)
         for v in psname_epics:
             temp = temp + chr(v)
         nomes_fontes.append(temp)
@@ -80,9 +92,11 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
             index = str1.find(str2)
 
             if (index != -1):
-                print("Ok. Fonte  é a esperada: ",str2)
+                text = colored("Ok. Fonte  é a esperada: ",'green')
+                print(text,str2)
             else:
-                print("Erro. Fonte não é a esperada: ",str2)
+                text = colored("Ok. Fonte  nao é a esperada: ",'red')
+                print(text,str2)
         print('\n')
 
 
@@ -108,40 +122,43 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
         firmware= epics.caget(firmware_version)
 
         if(firmware_version_origin == firmware):
-            print("Firmware version:",firmware,"Versão correta\n")
+            text =  colored("Versao correta\n",'green')
+            print("Firmware version:",firmware,text)
 
         else:
-            print("Firmware version:",firmware,"Versão incorreta\n")
+            text =  colored("Versao incorreta\n",'red')
+            print("Firmware version:",firmware,text)
+
+        ligar_fonte = input("Ligar fontes? (y) or (n): ")
+        if((ligar_fonte=="y") or (ligar_fonte=="yes")):
+            #Ligar fontes de um mesmo bastidor em sequência
+            for i in range(0,size):
+                turn_on = psnames[i][0]+":PwrState-Sel"
+                turn_on_ps = epics.caput(turn_on,0)
+                print("Fonte ligada:",psnames[i][0])
+                time.sleep(1)
+                    
+            print('\n')
+
+            #Colocar 1A para FBPs
+            for i in range(0,size):
+                current = psnames[i][0]+":Current-SP"
+                set_current = epics.caput(current,0)
+
+            time.sleep(2)
 
 
-        #Ligar fontes de um mesmo bastidor em sequência
-        for i in range(0,size):
-            turn_on = psnames[i][0]+":PwrState-Sel"
-            turn_on_ps = epics.caput(turn_on,1)
-            print("Fonte ligada:",psnames[i][0])
-            time.sleep(1)
-                
-        print('\n')
-
-        #Colocar 1A para FBPs
-        for i in range(0,size):
-            current = psnames[i][0]+":Current-SP"
-            set_current = epics.caput(current,1)
-
-        time.sleep(2)
-
-
-        #Ler 1A das fontes
-        for i in range(0,size):
-            read_current = psnames[i][0]+":Current-Mon"
-            current_value = epics.caget(read_current)
-            print(psnames[i][0],"Current value:",current_value)
+            #Ler 1A das fontes
+            for i in range(0,size):
+                read_current = psnames[i][0]+":Current-Mon"
+                current_value = epics.caget(read_current)
+                print(psnames[i][0],"Current value:",current_value)
 
 
         
         #Verifica sinal de sincronismo
 
-        sincronismo = input("Testar sincronismo? yes(y) ou no(n)")
+        sincronismo = input("Testar sincronismo? yes(y) no(n): ")
         if((sincronismo == "y") or (sincronismo == "yes")):
             for i in range(0,size):
 
@@ -199,16 +216,17 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
                 print(leitura_anterior, leitura_atual)
 
                 if(int(leitura_atual) != int(leitura_anterior) + 1):
-
-                    print("Erro no teste de sincronismo")
+                    text = colored("Erro no teste de sincronismo",'red')
+                    print(text)
 
                 else:
-                    print("Teste de sincronismo.Ok!")
+                    text = colored("Teste de sincronismo.Ok!",'green')
+                    print(text)
                     
         print('\n')
 
         #Desligar fontes
-        desligar = input("Desligar fontes?")
+        desligar = input("Desligar fontes?: ")
 
 
         if (desligar == "y" or desligar == "yes"):
@@ -227,7 +245,7 @@ if ((int(tipo_fonte) == 1) or (tipo_fonte=="FBP")):
             current_value = epics.caget(read_current)
             print(psnames[i][0],"Current value:",current_value)
 
-        var = int(input("Trocar bastidor(1) Encerrar Programa(2)"))
+        var = int(input("Trocar bastidor(1) Encerrar Programa(2): "))
 
         if(var == 2):
             encerrar = True
@@ -242,6 +260,13 @@ else:
     print("DCLink name:",dc_link_name[0])
 
 
+    # Verifica se ha timeout na conexao EPICS
+    ps_status = epics.PV(dc_link_name[0]+":Voltage-Mon")
+    if (not ps_status.status):
+        text = colored("UDC {} conectado!\n".format(dc_link_name[0]),'green')
+    else:
+        text = colored("ATENCAO! UDC {} nao esta comunicando!\n".format(dc_link_name[0]),'red')
+    print(text)
 
     #Verifica estado do interlock
 
@@ -281,7 +306,7 @@ else:
     print('\n')
 
     #Desligar DCLink
-    desligar = input("Desligar DCLink?")
+    desligar = input("Desligar DCLink?: ")
 
     if (desligar == "y" or desligar == "yes"):
         turn_off = dc_link_name[0]+":PwrState-Sel"
@@ -296,4 +321,3 @@ else:
     read_voltage = dc_link_name[0]+":Voltage-Mon"
     voltage_value = epics.caget(read_voltage)
     print(dc_link_name[0],"Voltage:",voltage_value)
-
