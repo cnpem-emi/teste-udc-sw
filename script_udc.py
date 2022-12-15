@@ -30,13 +30,15 @@ def epics_ca_no_print(epics_ca_warnings):
 # Escolhe direcionamento das mensagens de Exception
 epics.ca.replace_printf_handler(fcn=epics_ca_no_print)
 
-modo_teste = input("Escolha o modo de teste BID(1) ou demais testes(2)")
+modo_teste = input("Escolha o modo de teste BID(1) ou demais testes(2): ")
 n = int(input("Escolha o numero de testes: "))
 i=1
 if(modo_teste == "1" or modo_teste == 1):
 
     while(i <= n):
+
         print("Iteração numero", i)
+
         def check_param_bank(csv_file, max_error, memory=1):
             memoria_ram = drs.get_param_bank()
             #print("Memoria RAM",memoria_ram,'\n\n')
@@ -54,8 +56,8 @@ if(modo_teste == "1" or modo_teste == 1):
             
             for param_name in csv_ps_bank.keys():
                 if param_name == "PS_Name":
-                    if(csv_ps_bank[param_name] != read_ps_bank[param_name][0] and csv_ps_bank[param_name]!= memoria_ram[param_name][0]):
-                        print("{} = {} and {} : param differs!".format(
+                    if(csv_ps_bank[param_name] != read_ps_bank[param_name][0] or csv_ps_bank[param_name]!= memoria_ram[param_name][0]):
+                        print("{} = CSV {} and BID {} and RAM {} : param differs!".format(
                             param_name, 
                             csv_ps_bank[param_name], 
                             read_ps_bank[param_name],
@@ -64,12 +66,15 @@ if(modo_teste == "1" or modo_teste == 1):
                         )
 
                     if(read_ps_bank[param_name][0].find("ÿ") != -1):
-                        print(" ERRO BID corrompida")
+                        print(" ERRO BID corrompida!")
+                        exit()
+
+                    
                 else:
                     for i in range(len(csv_ps_bank[param_name])):
-                        if(csv_ps_bank[param_name][i] != read_ps_bank[param_name][i] and csv_ps_bank[param_name][i] != memoria_ram[param_name][i]):
+                        if(csv_ps_bank[param_name][i] != read_ps_bank[param_name][i] or csv_ps_bank[param_name][i] != memoria_ram[param_name][i]):
                             if(abs(csv_ps_bank[param_name][i] - read_ps_bank[param_name][i]) > FLOAT_MAX_ERROR and abs(csv_ps_bank[param_name][i] - memoria_ram[param_name][i]) > FLOAT_MAX_ERROR):
-                                print("{}[{}] = {} (CSV) and {} (DRS): params differ!".format(
+                                print("{}[{}] = {} (CSV) and {} (BID) and {} (RAM): params differ!".format(
                                     param_name, 
                                     i, 
                                     csv_ps_bank[param_name][i], 
@@ -91,10 +96,10 @@ if(modo_teste == "1" or modo_teste == 1):
 
             for param_name in csv_dsp_bank.keys():
                 for ninstance in range(pydrs.consts.num_dsp_modules[pydrs.consts.dsp_classes_names.index(param_name)]):
-                    if(csv_dsp_bank[param_name]['coeffs'][ninstance] != read_dsp_bank[param_name]['coeffs'][ninstance] and csv_dsp_bank[param_name]['coeffs'][ninstance] != memoria_ram[param_name]['coeffs'][ninstance]):
+                    if(csv_dsp_bank[param_name]['coeffs'][ninstance] != read_dsp_bank[param_name]['coeffs'][ninstance] or csv_dsp_bank[param_name]['coeffs'][ninstance] != memoria_ram[param_name]['coeffs'][ninstance]):
                         for ncoeff in range(pydrs.consts.num_coeffs_dsp_modules[pydrs.consts.dsp_classes_names.index(param_name)]):
                             if(abs(csv_dsp_bank[param_name]['coeffs'][ninstance][ncoeff] - read_dsp_bank[param_name]['coeffs'][ninstance][ncoeff]) > max_error and abs(csv_dsp_bank[param_name]['coeffs'][ninstance][ncoeff] - memoria_ram[param_name]['coeffs'][ninstance][ncoeff]) > max_error):
-                                print("{}[{},{}] = {} (CSV) and {} (DRS): params differ!".format(
+                                print("{}[{},{}] = {} (CSV) and {} (BID) and {} (RAM): params differ!".format(
                                     param_name, 
                                     ninstance,
                                     ncoeff,
@@ -195,9 +200,9 @@ if(modo_teste == "1" or modo_teste == 1):
                             psinfo[ps][1]
                         ))
                         if(check_param_bank(ps_param_path, FLOAT_MAX_ERROR, memory=args.type_mem)):
-                            print("ERRO")
+                            print("ERRO PS BANK")
                         else:
-                            print("OK")
+                            print("OK PS BANK")
                         
                         # ------------------------------
                         # READINGS - DSP PARAMETERS
@@ -208,9 +213,9 @@ if(modo_teste == "1" or modo_teste == 1):
                             psinfo[ps][2]
                         ))
                             if(check_dsp_module_bank(dsp_param_path, FLOAT_MAX_ERROR, memory=args.type_mem)):
-                                print("ERRO")
+                                print("ERRO DSP BANK")
                             else:
-                                print("OK!")
+                                print("OK DSP BANK")
                         
                         # ------------------------------
                         # RESET UDC FOR PARAMETER LOADING
@@ -219,7 +224,9 @@ if(modo_teste == "1" or modo_teste == 1):
                         drs.reset_udc()
                         time.sleep(5)
                         
-                        #drs.slave_addr = int(bid_ps_bank['RS485_Address'][0][0])
+                        #read_ps_bank = drs.get_param_bank()
+
+                        #drs.slave_addr = int(read_ps_bank['RS485_Address'][0][0])
 
                         while(True):
                             try:
